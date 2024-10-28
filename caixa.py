@@ -1,6 +1,7 @@
-from produtos import get_produtos
+from produtos import registrar_produtos
 # biblioteca tabulate: https://www.datacamp.com/tutorial/python-tabulate
-from tabulate import tabulate #exigir download dessa lib na maquina: pip install --user tabulate
+from tabulate import tabulate #exigir download dessa lib na maquina: pip install tabulate
+import sqlite3
 import os
 import time
 
@@ -11,18 +12,26 @@ def limpar_tela():
     else:
         os.system('clear')
 
+def conectar_banco():
+    return sqlite3.connect('hortifruti.db')
+
 def mostrar_produtos(produtos):
-    for categoria, itens in produtos.items():
-        tabela = []
-        print(f"\tCategoria: {categoria.capitalize()}")
-        for nome, info in itens.items():
-            if 'preco/kg' in info:
-                preco = info['preco/kg']
-                tabela.append([nome, f"R${preco:.2f}/kg"]) 
-            elif 'preco/un' in info:
-                preco = info['preco/un']
-                tabela.append([nome, f"R${preco:.2f}/un"])  
-        print(tabulate(tabela, headers = ["Produto", "Preço"], stralign="center",tablefmt="fancy_grid"))
+    conexao = sqlite3.connect('hortifruti.db')
+    cursor = conexao.cursor()
+
+    cursor.execute("SELECT DISTINCT tipo FROM produtos")
+    tipos = cursor.fetchall()
+    for tipo in tipos:
+        tipo_nome = tipo[0]
+        print(f"\nCategoria: {tipo_nome.capitalize()}")
+        
+        cursor.execute("SELECT nome_tipo, preco_kg, kg_ou_unidade FROM produtos WHERE tipo = ?", (tipo_nome,))
+        produtos = cursor.fetchall()
+        
+        tabela = [[nome, f"R${preco:.2f}/{unidade}"] for nome, preco, unidade in produtos]
+        print(tabulate(tabela, headers=["Produto", "Preço"], stralign="center", tablefmt="fancy_grid"))
+    
+    conexao.close()
 
 # def mostrar_produtos(produtos):
 #     for categoria, itens in produtos.items():
@@ -77,36 +86,45 @@ def cadastrar_usuario():
     else: 
         print("Continuando sem cadastro...")
         
-def realizar_compra(produtos):
+def realizar_compra():
+    conexao = sqlite3.connect('hortifruti.db')
+    cursor = conexao.cursor()
     total = 0.0
     itens_comprados = []
 
     while True:
+        cursor.execute("SELECT DISTINCT tipo FROM produtos")
+        categorias = [tipo[0] for tipo in cursor.fetchall()]
+        print("\nCategorias disponíveis:", ", ".join(categorias))
+
         categoria = input("\nEscolha uma categoria de produtos (frutas, verduras, folhagens) ou digite 'sair' para finalizar a compra: ").lower()
         if categoria == 'sair':
             break
 
-        if categoria in produtos:
-            limpar_tela()
-            mostrar_produtos({categoria: produtos[categoria]})
+        if categoria in categorias:
+            cursor.execute("SELECT nome_tipo, preco_kg, kg_ou_unidade FROM produtos WHERE tipo = ?", (categoria,))
+            produtos = cursor.fetchall()
+            print(f"\nProdutos da categoria {categoria.capitalize()}:")
+            for produto in produtos:
+                nome, preco, unidade = produto
+                print(f"{nome} - R${preco:.2f}/{unidade}")
 
             produto_escolhido = input("\nDigite o nome do produto que deseja comprar ou 'voltar' para escolher outra categoria: ").title()
             if produto_escolhido == 'voltar':
                 continue
-
-            if produto_escolhido in produtos[categoria]:
-                if categoria in ['frutas', 'verduras']:
-                    quantidade = float(input(f"Quantos kg você deseja comprar? (ex: 0.5 para 500g, 1.0 para 1kg): "))
-                    preco_produto = produtos[categoria][produto_escolhido]['preco/kg']
+            cursor.execute("SELECT preco_kg, kg_ou_unidade FROM produtos WHERE nome_tipo = ? AND tipo = ?", (produto_escolhido, categoria))
+            resultado = cursor.fetchone()
+            if resultado:
+                preco_produto, unidade = resultado
+                if unidade == 'kg':
+                    quantidade = float(input("Quantos kg deseja comprar? "))
                     subtotal = preco_produto * quantidade
-                    print(f"{quantidade} - {produto_escolhido}(s) adicionado(s) ao carrinho. Subtotal: R${subtotal:.2f}")
-
-                elif categoria == 'folhagens':
-                    quantidade = int(input(f"Quantas unidades você deseja comprar? (ex: 1 para 1 unidade): "))
-                    preco_produto = produtos[categoria][produto_escolhido]['preco/un']
+                    print(f"{quantidade} kg de {produto_escolhido} adicionado(s) ao carrinho. Subtotal: R${subtotal:.2f}")
+                else:
+                    quantidade = int(input("Quantas unidades deseja comprar? "))
                     subtotal = preco_produto * quantidade
-                    print(f"{quantidade} unidade(s) {produto_escolhido}(s) adicionado(s) ao carrinho. Subtotal: R${subtotal:.2f}")
-                
+                    print(f"{quantidade} unidade(s) de {produto_escolhido} adicionada(s) ao carrinho. Subtotal: R${subtotal:.2f}")
+
                 total += subtotal
                 itens_comprados.append((produto_escolhido, quantidade, subtotal))
             else:
@@ -138,8 +156,8 @@ def sistema_caixa():
     cadastrar_usuario()
     print("Te redirecionando para o nosso catálogo...")
     time.sleep(1.5)
-    produtos = get_produtos()
-    total, itens_comprados = realizar_compra(produtos)
+
+    total, itens_comprados = realizar_compra()
     finalizar_compra(total, itens_comprados)
 
 if __name__ == "__main__":
