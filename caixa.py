@@ -1,4 +1,3 @@
-from produtos import registrar_produtos
 # biblioteca tabulate: https://www.datacamp.com/tutorial/python-tabulate
 from tabulate import tabulate #exigir download dessa lib na maquina: pip install tabulate
 import sqlite3
@@ -15,7 +14,7 @@ def limpar_tela():
 def conectar_banco():
     return sqlite3.connect('hortifruti.db')
 
-def mostrar_produtos(produtos):
+def mostrar_produtos():
     conexao = sqlite3.connect('hortifruti.db')
     cursor = conexao.cursor()
 
@@ -145,7 +144,6 @@ def sistema_caixa():
     cadastrar_usuario()
     print("Te redirecionando para o nosso catálogo...")
     time.sleep(1.5)
-
     total, itens_comprados = realizar_compra()
     finalizar_compra(total, itens_comprados)
 
