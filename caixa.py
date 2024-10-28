@@ -91,7 +91,6 @@ def realizar_compra(produtos):
             mostrar_produtos({categoria: produtos[categoria]})
 
             produto_escolhido = input("\nDigite o nome do produto que deseja comprar ou 'voltar' para escolher outra categoria: ").title()
-
             if produto_escolhido == 'voltar':
                 continue
 
