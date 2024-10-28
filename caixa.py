@@ -33,17 +33,6 @@ def mostrar_produtos(produtos):
     
     conexao.close()
 
-# def mostrar_produtos(produtos):
-#     for categoria, itens in produtos.items():
-#         print(f"\nCategoria: {categoria.capitalize()}")
-#         for nome, info in itens.items():
-#             if 'preco/kg' in info:
-#                 preco = info['preco/kg']
-#                 print(f"Produto: {nome}, Preço: R${preco:.2f}/kg")
-#             elif 'preco/un' in info:
-#                 preco = info['preco/un']
-#                 print(f"Produto: {nome}, Preço: R${preco:.2f}/un")
-
 
 def forma_pagamento():
     """Solicita ao usuário a forma de pagamento escolhida."""
